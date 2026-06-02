@@ -1,24 +1,27 @@
-#ifndef DRV_GPIO_H_     
-#define DRV_GPIO_H_     
+#ifndef DRV_GPIO_H
+#define DRV_GPIO_H
 
-#include <stdint.h>     
-typedef enum {
-    DRV_PORT_A = 0,
-    DRV_PORT_B = 1,
-    DRV_PORT_C = 2
-} DRV_Port_t;
+#include "stm32f10x.h"
 
+typedef enum{
+	PA, PB, PC
+} Ports;
 
-void DRV_GPIO_Init(void);
+typedef enum{
+	IN, OUT10, OUT2, OUT50
+} Mode;
 
+enum inputMode{
+	I_AN, I_F, I_PP
+};
 
-void DRV_GPIO_WritePin(DRV_Port_t port, uint16_t pin, uint8_t state);
+enum outputMode{
+	O_GP_PP, O_GP_OD, O_AF_PP, O_AF_OD
+};
 
+void GPIO_Init(Ports port, unsigned short pin, Mode mode, unsigned short cnf);
+void GPIO_Write(Ports port, unsigned short pin, unsigned short state);
+int GPIO_Read(unsigned short port, unsigned short pin);
+void GPIO_Toggle(unsigned short port, unsigned short pin);
 
-uint8_t DRV_GPIO_ReadPin(DRV_Port_t port, uint16_t pin);
-
-
-void DRV_GPIO_TogglePin(DRV_Port_t port, uint16_t pin);
-
-#endif 
-
+#endif
