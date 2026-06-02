@@ -3,12 +3,12 @@
 
 #include "stm32f10x.h"
 
-enum timers{
+typedef enum{
 	T, T1, T2, T3, T4
-};
+} Timers;
 
-void Delay_us(unsigned short timer, int us);
-void Delay_ms(unsigned short timer, int ms);
+void Delay_us(Timers timer, int us);
+void Delay_ms(Timers timer, int ms);
 void delay_us(int us);
 void delay_ms(int us);
 
