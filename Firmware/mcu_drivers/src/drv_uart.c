@@ -1,4 +1,4 @@
-#include "drv_uart.h"
+#include "../inc/drv_uart.h"
 
 void DRV_UART1_Init(uint32_t baudrate) {
 	// Enable UART1 and GPIOA

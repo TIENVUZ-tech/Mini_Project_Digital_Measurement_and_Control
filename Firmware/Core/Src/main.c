@@ -1,5 +1,5 @@
 #include "stm32f10x.h"
-#include ".\Firmware\mcu_drivers\src\drv_uart.h"
+#include "../../mcu_drivers/inc/drv_uart.h"
 
 int main() {
 	DRV_UART1_Init(115200);
