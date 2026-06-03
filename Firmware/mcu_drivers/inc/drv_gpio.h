@@ -1,7 +1,7 @@
-#ifndef DRV_GPIO_H
-#define DRV_GPIO_H
+#ifndef __DRV_GPIO_H
+#define __DRV_GPIO_H
 
-#include "stm32f10x.h"
+#include "stm32f1xx.h"
 
 typedef enum{
 	PA, PB, PC
@@ -20,8 +20,11 @@ enum outputMode{
 };
 
 void GPIO_Init(Ports port, unsigned short pin, Mode mode, unsigned short cnf);
+
 void GPIO_Write(Ports port, unsigned short pin, unsigned short state);
+
 int GPIO_Read(unsigned short port, unsigned short pin);
+
 void GPIO_Toggle(unsigned short port, unsigned short pin);
 
 #endif
