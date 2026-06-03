@@ -23,8 +23,8 @@ void GPIO_Init(Ports port, unsigned short pin, Mode mode, unsigned short cnf);
 
 void GPIO_Write(Ports port, unsigned short pin, unsigned short state);
 
-int GPIO_Read(unsigned short port, unsigned short pin);
+int GPIO_Read(Ports port, unsigned short pin);
 
-void GPIO_Toggle(unsigned short port, unsigned short pin);
+void GPIO_Toggle(Ports port, unsigned short pin);
 
 #endif
