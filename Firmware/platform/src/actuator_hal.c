@@ -2,51 +2,41 @@
 #include "drv_gpio.h"
 #include "drv_pwm.h"
 
-/* ========================================================================= */
-/* ĐỊNH NGHĨA PHẦN CỨNG (Dùng chuẩn Enum và Số thứ tự chân của Driver)      */
-/* ========================================================================= */
-#define HAL_PORT_HEATER     DRV_PORT_B  // Dùng đúng Enum định nghĩa trong drv_gpio.h
-#define HAL_PIN_HEATER      0           // Chân số 0 (PB0) - Driver sẽ tự dịch bit
 
-#define HAL_PORT_MIST       DRV_PORT_B  // Dùng đúng Enum định nghĩa trong drv_gpio.h
-#define HAL_PIN_MIST        1           // Chân số 1 (PB1) - Driver sẽ tự dịch bit
+#define FAN_TIM      PWM_TIM3
+#define FAN_PORT     PA
+#define FAN_PIN      6
+#define FAN_CH       PWM_CH1
 
-#define HAL_PWM_CH_FAN      1           // Channel 1 của Timer 3 (PA6)
+#define LIGHT_TIM    PWM_TIM3
+#define LIGHT_PORT   PA
+#define LIGHT_PIN    7
+#define LIGHT_CH     PWM_CH2
 
-/* ========================================================================= */
-/* HÀM 1: Khởi tạo tầng HAL (Cấu hình và đưa thiết bị về trạng thái an toàn)  */
-/* ========================================================================= */
+#define ACT_FREQ     2500
+
 void ActuatorHAL_Init(void) {
-    // 1. Phải gọi hàm khởi tạo phần cứng từ tầng Driver dưới lên
-    DRV_GPIO_Init();
-    DRV_PWM_Init();
-    
-    // 2. Kích hoạt bộ phát xung PWM cho Quạt
-    DRV_PWM_Start(HAL_PWM_CH_FAN);
-    
-    // 3. Đảm bảo trạng thái ban đầu an toàn (Tắt hết thiết bị khi vừa có điện)
-    DRV_GPIO_WritePin(HAL_PORT_HEATER, HAL_PIN_HEATER, 0); // Tắt máy sưởi
-    DRV_GPIO_WritePin(HAL_PORT_MIST, HAL_PIN_MIST, 0);     // Tắt máy phun sương
-    DRV_PWM_SetDuty(HAL_PWM_CH_FAN, 0);                    // Quạt 0% công suất
+
+    DRV_PWM_Init(FAN_TIM, FAN_PORT, FAN_PIN, FAN_CH, ACT_FREQ);
+    DRV_PWM_Start(FAN_TIM, FAN_CH);
+    DRV_PWM_SetDuty(FAN_TIM, FAN_CH, 0);
+
+    DRV_PWM_Init(LIGHT_TIM, LIGHT_PORT, LIGHT_PIN, LIGHT_CH, ACT_FREQ);
+    DRV_PWM_Start(LIGHT_TIM, LIGHT_CH);
+    DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, 0);
 }
 
-/* ========================================================================= */
-/* HÀM 2: Điều khiển tốc độ Quạt bằng phần trăm (0 - 100%)                  */
-/* ========================================================================= */
-void ActuatorHAL_SetFanPWM(uint16_t duty) {
-    DRV_PWM_SetDuty(HAL_PWM_CH_FAN, duty);
+void ActuatorHAL_SetFan(uint8_t duty_percent) {
+    if (duty_percent > 100) duty_percent = 100;
+    uint16_t duty_val = (uint16_t)duty_percent * 10;
+
+
+    DRV_PWM_SetDuty(FAN_TIM, FAN_CH, duty_val);
 }
 
-/* ========================================================================= */
-/* HÀM 3: Điều khiển bật/tắt Máy Sưởi (1 = Bật, 0 = Tắt)                    */
-/* ========================================================================= */
-void ActuatorHAL_SetHeater(uint8_t state) {
-    DRV_GPIO_WritePin(HAL_PORT_HEATER, HAL_PIN_HEATER, state);
-}
+void ActuatorHAL_SetLight(uint8_t intensity_percent) {
+    if (intensity_percent > 100) intensity_percent = 100;
+    uint16_t duty_val = (uint16_t)intensity_percent * 10;
 
-/* ========================================================================= */
-/* HÀM 4: Điều khiển bật/tắt Máy Phun Sương (1 = Bật, 0 = Tắt)               */
-/* ========================================================================= */
-void ActuatorHAL_SetMist(uint8_t state) {
-    DRV_GPIO_WritePin(HAL_PORT_MIST, HAL_PIN_MIST, state);
+    DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, duty_val);
 }
