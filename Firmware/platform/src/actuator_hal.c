@@ -1,6 +1,6 @@
-#include "actuator_hal.h"
-#include "drv_gpio.h"
-#include "drv_pwm.h"
+#include "../inc/actuator_hal.h"
+#include "../../mcu_drivers/inc/drv_gpio.h"
+#include "../../mcu_drivers/inc/drv_pwm.h"
 
 #define FAN_TIM      PWM_TIM3
 #define FAN_PORT     PA

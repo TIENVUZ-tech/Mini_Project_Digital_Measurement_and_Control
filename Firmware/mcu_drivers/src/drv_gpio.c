@@ -1,5 +1,5 @@
-#include "stm32f1xx.h"
-#include "drv_gpio.h"
+#include "stm32f10x.h"
+#include "../inc/drv_gpio.h"
 
 void GPIO_Init(Ports port, unsigned short pin, Mode mode, unsigned short cnf){
 	GPIO_TypeDef *cr;

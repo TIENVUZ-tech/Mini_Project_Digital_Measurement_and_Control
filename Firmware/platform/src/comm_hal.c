@@ -5,12 +5,12 @@ void CommHAL_Init(void){
 	DRV_UART1_Init(baudrate);
 }
 
-void CommHAL_SendBytes(uint8_t *data, uint16_t len) {
-	DRV_UART1_SendBytes(data, len);
+void CommHAL_SendByte(uint8_t data) {
+	DRV_UART1_SendByte(data);
 }
 
-void CommHAL_SendString(char *str) {
-	DRV_UART1_SendString(str);
+void CommHAL_SendBytes(uint8_t *data, uint8_t len) {
+	DRV_UART1_SendBytes(data, len);
 }
 
 uint8_t CommHAL_Available(void) {

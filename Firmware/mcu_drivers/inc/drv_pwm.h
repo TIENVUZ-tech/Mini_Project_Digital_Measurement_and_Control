@@ -1,7 +1,7 @@
 #ifndef __DRV_PWM_H
 #define __DRV_PWM_H
 
-#include "stm32f1xx.h"
+#include "stm32f10x.h"
 #include <stdint.h>
 #include "drv_gpio.h" 
 

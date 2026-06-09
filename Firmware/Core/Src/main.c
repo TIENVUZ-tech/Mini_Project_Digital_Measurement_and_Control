@@ -1,15 +1,25 @@
-#include "stm32f10x.h"
-#include "../../mcu_drivers/inc/drv_uart.h"
+#include "../Inc/main.h"
+
+static GreenhouseData_t g_data = {
+	.temperature = 28.5f,
+	.temp_setpoint = 25.0f,
+	.fan_state = 0,
+	.heater_state = 0,
+	.fan_pwm = 0,
+	.mode = MODE_AUTO
+};
 
 int main() {
-	DRV_UART1_Init(115200);
-	DRV_UART1_SendString("Hello world\r\n");
-	uint8_t data = 0;
+	CommHAL_Init();
+	Protocol_Init();
+	
+	uint8_t data[11] = "Hello world";
+	CommHAL_SendBytes(data, 11);
+	
 	while(1) {
-		if (DRV_UART1_Available()) {
-			data = DRV_UART1_ReadByte();
-			DRV_UART1_SendByte(data);
-		}
+		Protocol_Run(&g_data);
+		g_data.temperature += 0.1f;
+		//Delay_ms(T2, 2000);
+		// Protocol_SendSensorData(&g_data);
 	}
 }
-		

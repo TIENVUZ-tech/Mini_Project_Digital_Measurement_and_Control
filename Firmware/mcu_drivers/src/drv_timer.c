@@ -1,5 +1,5 @@
 #include "stm32f10x.h"
-#include "drv_timer.h"
+#include "../inc/drv_timer.h"
 
 void Delay_us(Timers timer, int us){
 	int prescaler = 72 - 1;
