@@ -1,25 +1,32 @@
 #ifndef CONTROL_APP_H
 #define CONTROL_APP_H
 
-#include "greenhouse_types.h"
+#include <stdint.h>
 
-// C?u trúc b? ði?u khi?n PID cho STM32F103
+
+typedef enum {
+    STATE_IDLE = 0,
+    STATE_AUTO,
+    STATE_MANUAL,
+    STATE_ERROR
+} GreenhouseState_t;
+
+
 typedef struct {
-    float kp;
-    float ki;
-    float kd;
-    float integral;
-    float prev_error;
-    float max_output;
-    float min_output;
-    float max_integral;
-} PID_Controller_t;
+    GreenhouseState_t state;
+    float current_temperature;
+    float current_humidity;
+    uint16_t fan_pwm;
+    uint8_t heater_state;
+} GreenhouseData_t;
+
 
 void ControlApp_Init(void);
-void ControlApp_Update(GreenhouseData_t *data);
-void ControlApp_SetMode(SystemState_t state);
-void ControlApp_SetTempSetpoint(float temp);
-void ControlApp_SetHumSetpoint(float hum);
-void ControlApp_SetPIDTune(float p, float i, float d);
+void ControlApp_Run(void) ;
 
-#endif // CONTROL_APP_H
+void ControlApp_SetPID(float kp, float ki, float kd);
+
+
+GreenhouseData_t* ControlApp_GetData(void);
+
+#endif
