@@ -1,6 +1,8 @@
 #include "control_app.h"
+#include "pid_control.h"
 
-static PID_Controller_t fan_pid;
+/* Khai báo bộ điều khiển PID cho Quạt theo kiểu dữ liệu mới */
+static PIDController_t fan_pid;
 
 static float target_temperature = 30.0f;
 static float target_humidity = 70.0f;
@@ -9,73 +11,43 @@ static float target_humidity = 70.0f;
 /* 🛠️ CHỨNG NĂNG 1: KHỞI TẠO HỆ THỐNG                                         */
 /* ========================================================================= */
 void ControlApp_Init(void) {
-    fan_pid.kp = 2.5f;           
-    fan_pid.ki = 0.1f;           
-    fan_pid.kd = 0.4f;           
-    fan_pid.integral = 0.0f;
-    fan_pid.prev_error = 0.0f;
-    fan_pid.max_output = 100.0f; 
-    fan_pid.min_output = 0.0f;   
-    fan_pid.max_integral = 40.0f;
+    /* 1. Gán các thông số Kp, Ki, Kd nâng cao */
+
+    fan_pid.Kp = 2.5f;
+    fan_pid.Ki = 0.1f;
+    fan_pid.Kd = 0.4f;
+
+    /* 2. Gán thông số cấu hình chu kỳ và bộ lọc thông thấp khâu D */
+    fan_pid.T   = 0.1f;          // Chu kỳ gọi hàm Update
+    fan_pid.tau = 0.05f;         // Hằng số lọc nhiễu tần số cao cho khâu D (thường = 0.5 * T)
+
+    /* 3. Cài đặt các ngưỡng giới hạn cứng cho đầu ra PWM và khâu tích phân */
+    fan_pid.limMin = 0.0f;
+    fan_pid.limMax = 100.0f;
+    fan_pid.limMinInt = -40.0f;  // Giới hạn dưới khâu I chống vọt lố (Anti-windup)
+    fan_pid.limMaxInt = 40.0f;   // Giới hạn trên khâu I chống vọt lố (Anti-windup)
+
+    /* 4. Reset toàn bộ biến nhớ nội bộ về 0 */
+    PID_Init(&fan_pid);
 }
 
 /* ========================================================================= */
-/* 🧮 CHỨNG NĂNG 2: THUẬT TOÁN TOÁN HỌC PID QUẠT                             */
-/* ========================================================================= */
-static float PID_Compute(PID_Controller_t *pid, float setpoint, float feedback) {
-    // Sỹ lưu ý: Quạt dùng để LÀM MÁT, nên nếu Nhiệt độ thực tế (feedback)
-    // lớn hơn nhiệt độ cài đặt (setpoint) thì mới có sai số dương để quạt quay nhé!
-    float error = feedback - setpoint; 
-
-    // Nếu môi trường đang mát hơn hoặc bằng nhiệt độ cài đặt -> Tắt quạt, xóa tích phân
-    if (error < 0.0f) {
-        pid->integral = 0.0f;
-        pid->prev_error = 0.0f;
-        return 0.0f;
-    }
-
-    // Khâu tỷ lệ P
-    float p_term = pid->kp * error;
-
-    // Khâu tích phân I (Tích lũy sai số)
-    pid->integral += error;
-
-    // Chống bão hòa tích phân (Anti-windup bằng biến max_integral nhóm mới thêm)
-    if (pid->integral > pid->max_integral)  pid->integral = pid->max_integral;
-    if (pid->integral < -pid->max_integral) pid->integral = -pid->max_integral;
-    float i_term = pid->ki * pid->integral;
-
-    // Khâu đạo hàm D
-    float d_term = pid->kd * (error - pid->prev_error);
-    pid->prev_error = error;
-
-    // Tổng hợp đầu ra
-    float output = p_term + i_term + d_term;
-
-    // Giới hạn đầu ra PWM từ 0 - 100%
-    if (output > pid->max_output) output = pid->max_output;
-    if (output < pid->min_output) output = pid->min_output;
-
-    return output;
-}
-
-/* ========================================================================= */
-/* 🔄 CHỨNG NĂNG 3: VÒNG LẶP ĐIỀU KHIỂN CHÍNH (Được gọi chu kỳ)               */
+/* 🔄 CHỨNG NĂNG 2: VÒNG LẶP ĐIỀU KHIỂN CHÍNH (Được gọi chu kỳ)               */
 /* ========================================================================= */
 void ControlApp_Update(GreenhouseData_t *data) {
     if (data == 0) return;
 
-    // 1. KIỂM TRA LỖI CẢM BIẾN (Bảo vệ hệ thống của Sỹ cực tốt)
+    // 1. KIỂM TRA LỖI CẢM BIẾN (Chức năng Fail-safe bảo vệ phần cứng)
     if (data->temperature < -40.0f || data->temperature > 80.0f || 
         data->air_humidity < 0.0f   || data->air_humidity > 100.0f) {
         data->state = STATE_ERROR; 
     }
 
-    // Cập nhật các Setpoint từ cấu hình nội bộ vào struct chung để Tiến dễ đọc
+    // Cập nhật các Setpoint từ cấu hình nội bộ vào struct chung
     data->temp_setpoint = target_temperature;
     data->hum_setpoint = target_humidity;
 
-    // 2. MÁY TRẠNG THÁI CHÍNH
+    // 2. MÁY TRẠNG THÁI CHÍNH ĐIỀU PHỐI NHÀ KÍNH
     switch (data->state) {
         case STATE_IDLE:
             data->fan_pwm = 0;
@@ -85,22 +57,24 @@ void ControlApp_Update(GreenhouseData_t *data) {
             break;
 
         case STATE_AUTO:
-            // --- ĐIỀU KHIỂN NHIỆT ĐỘ (Quạt PID + Sưởi Hysteresis) ---
+            /* --- ĐIỀU KHIỂN NHIỆT ĐỘ KHÉP KÍN --- */
+            // Gọi hàm tính toán từ thư viện pid_control chuyên dụng
             float pid_output = PID_Compute(&fan_pid, data->temp_setpoint, data->temperature);
             data->fan_pwm = (uint16_t)pid_output;
             data->fan_state = (data->fan_pwm > 0) ? ACT_ON : ACT_OFF;
 
-            // Vòng trễ Hysteresis cho Máy sưởi (T_set +/- 1)
+            // Thuật toán vòng trễ Hysteresis cho Máy sưởi (Biên độ trễ +/- 1.0 độ C)
             float temp_hysteresis = 1.0f;
             if (data->temperature < (data->temp_setpoint - temp_hysteresis)) {
-                data->heater_state = ACT_ON;   // Lạnh quá -> Bật sưởi
-                data->fan_pwm = 0;             // Đang sưởi thì tắt quạt kẻo lãng phí nhiệt
+                data->heater_state = ACT_ON;   // Trời lạnh quá -> Bật sưởi
+                data->fan_pwm = 0;             // Đang sưởi thì ép tắt quạt để tiết kiệm nhiệt
                 data->fan_state = ACT_OFF;
             } else if (data->temperature > (data->temp_setpoint + temp_hysteresis)) {
                 data->heater_state = ACT_OFF;  // Đủ ấm -> Tắt sưởi
             }
 
-            // --- ĐIỀU KHIỂN ĐỘ ẨM (Phun sương Hysteresis) ---
+            /* --- ĐIỀU KHIỂN ĐỘ ẨM --- */
+            // Thuật toán vòng trễ Hysteresis cho Phun sương (Biên độ trễ +/- 5.0%)
             float hum_hysteresis = 5.0f;
             if (data->air_humidity < (data->hum_setpoint - hum_hysteresis)) {
                 data->mist_state = ACT_ON;     // Khô quá -> Bật phun sương
@@ -110,13 +84,11 @@ void ControlApp_Update(GreenhouseData_t *data) {
             break;
 
         case STATE_MANUAL:
-            // Chế độ tay: Giữ nguyên các giá trị thiết bị.
-            // Ông Tiến (Comm) nhận dữ liệu từ PC Tool sẽ tự ghi đè thẳng vào các biến
-            // data->fan_pwm, data->heater_state... Sỹ không can thiệp thuật toán ở đây.
+            // Chế độ tay:nhận dữ liệu từ PC Tool sẽ ghi đè thẳng vào các biến phần cứng.
             break;
 
         case STATE_ERROR:
-            // Trạng thái khẩn cấp: Ép tắt toàn bộ phần cứng
+            // Trạng thái khẩn cấp: Ép tắt sạch sành sanh mọi thiết bị phần cứng
             data->fan_pwm = 0;
             data->fan_state = ACT_OFF;
             data->heater_state = ACT_OFF;
@@ -130,15 +102,12 @@ void ControlApp_Update(GreenhouseData_t *data) {
 }
 
 /* ========================================================================= */
-/* 🤝 CHỨNG NĂNG 4: CÁC HÀM API GIAO TIẾP (Bản hợp đồng với ông Tiến)        */
+/* 🤝 CHỨNG NĂNG 3: CÁ C HÀM API GIAO TIẾP VỚI CÁC FILE KHÁC                  */
 /* ========================================================================= */
 
-// Hàm đổi chế độ hệ thống (Xóa bộ nhớ PID cũ để tránh bị sốc dòng khi đổi chế độ)
+// Hàm đổi chế độ hệ thống (Gọi hàm Init để reset sạch bộ nhớ tránh sốc dòng khi đổi chế độ)
 void ControlApp_SetMode(SystemState_t state) {
-    // Sỹ ép kiểu an toàn từ SystemState_t sang GreenhouseState_t nếu cần
-    // Nhưng nhiệm vụ chính ở đây là reset khâu tích phân PID
-    fan_pid.integral = 0.0f;
-    fan_pid.prev_error = 0.0f;
+    PID_Init(&fan_pid);
 }
 
 // Cập nhật nhiệt độ mong muốn từ PC gửi xuống
@@ -146,14 +115,14 @@ void ControlApp_SetTempSetpoint(float temp) {
     target_temperature = temp;
 }
 
-// Cập nhật độ ẩm mong muốn từ PC gửi xuống
+// Cập nhật độ ẩm mong muốn từ PC gửi xuống thông qua ông Tiến
 void ControlApp_SetHumSetpoint(float hum) {
     target_humidity = hum;
 }
 
-// Hàm Tune PID trực tiếp từ giao diện máy tính của Thúy
+// Hàm Tune thông số PID thời gian thực trực tiếp từ giao diện máy tính
 void ControlApp_SetPIDTune(float p, float i, float d) {
-    fan_pid.kp = p;
-    fan_pid.ki = i;
-    fan_pid.kd = d;
+    fan_pid.Kp = p;
+    fan_pid.Ki = i;
+    fan_pid.Kd = d;
 }

@@ -2,7 +2,7 @@
 #define PROTOCOL_HANDLER_H_
 
 #include "../../platform/inc/comm_hal.h"
-#include "./greenhouse_types.h"
+#include "greenhouse_types.h"
 #include <stdint.h>
 
 // Start of Frame
