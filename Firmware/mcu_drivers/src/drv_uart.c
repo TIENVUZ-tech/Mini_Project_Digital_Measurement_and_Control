@@ -1,8 +1,5 @@
 #include "../inc/drv_uart.h"
-
-static volatile uint8_t rx_buf[UART_RX_BUFFER_SIZE];
-static volatile uint8_t rx_head = 0; // IRQ write from here
-static volatile uint8_t rx_tail = 0; // App read from here
+#include "../../platform/inc/comm_hal.h"
 
 void DRV_UART1_Init(uint32_t baudrate) {
 	// Enable UART1 and GPIOA
@@ -37,12 +34,8 @@ void DRV_UART1_Init(uint32_t baudrate) {
 // IRQ Handler
 void USART1_IRQHandler(void) {
 	if (USART1->SR & (1 << 5)) {
-		uint8_t byte = USART1->DR;
-		uint8_t next_head = (rx_head + 1) & (UART_RX_BUFFER_SIZE - 1);
-		if (next_head != rx_tail) {
-			rx_buf[rx_head] = byte;
-			rx_head = next_head;
-		}
+		uint8_t byte = (uint8_t)USART1->DR;
+		CommHAL_RxByteCallback(byte);
 	}
 }
 		
@@ -56,17 +49,5 @@ void DRV_UART1_SendBytes(uint8_t *data, uint8_t len) {
 	for (uint8_t i = 0; i < len; i++) {
 		DRV_UART1_SendByte(data[i]);
 	}
-}
-
-uint8_t DRV_UART1_Available(void) {
-	return (uint8_t)((rx_head - rx_tail) & (UART_RX_BUFFER_SIZE - 1));
-}
-
-uint8_t DRV_UART1_ReadByte(void) {
-	if (rx_head == rx_tail) return 0;
-	
-	uint8_t byte = rx_buf[rx_tail];
-	rx_tail = (rx_tail + 1) & (UART_RX_BUFFER_SIZE - 1);
-	return byte;
 }
 

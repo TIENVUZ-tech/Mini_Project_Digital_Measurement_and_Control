@@ -25,14 +25,22 @@ void ActuatorHAL_Init(void)
     DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, 0);
 }
 
-void ActuatorHAL_SetFan(uint8_t duty_percent)
+/*
+struct{type, value}
+errorCode  ActuatorHAL_SetFan(uint8_t duty_percent)
 {
     if (duty_percent > 100)
         duty_percent = 100;
 
-    DRV_PWM_SetDuty(FAN_TIM, FAN_CH, duty_percent);
+		swtich(type):
+		case percent:
+			DRV_PWM_SetDuty(FAN_TIM, FAN_CH, duty_percent);
+			break;
+		case ...:
+			//TODO:...
+			break;
 }
-
+*/
 void ActuatorHAL_SetLight(uint8_t intensity_percent)
 {
     if (intensity_percent > 100)

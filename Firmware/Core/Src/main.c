@@ -12,14 +12,20 @@ static GreenhouseData_t g_data = {
 int main() {
 	CommHAL_Init();
 	Protocol_Init();
+	TIM2_Init();
 	
 	uint8_t data[11] = "Hello world";
 	CommHAL_SendBytes(data, 11);
 	
+	uint32_t last_report_ms = 0;
+	
 	while(1) {
 		Protocol_Run(&g_data);
-		g_data.temperature += 0.1f;
-		//Delay_ms(T2, 2000);
-		// Protocol_SendSensorData(&g_data);
+		
+		uint32_t now = DRV_TIM_GetMs();
+		if (now - last_report_ms >= 2000) {
+			last_report_ms = now;
+			Protocol_SendSensorData(&g_data);
+		}
 	}
 }
