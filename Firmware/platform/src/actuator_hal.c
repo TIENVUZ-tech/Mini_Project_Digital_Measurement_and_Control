@@ -7,12 +7,14 @@
 #define FAN_PIN      6
 #define FAN_CH       PWM_CH1
 
-#define LIGHT_TIM    PWM_TIM3
-#define LIGHT_PORT   PA
-#define LIGHT_PIN    7
-#define LIGHT_CH     PWM_CH2
+#define HEATER_TIM    PWM_TIM3
+#define HEATER_PORT   PA
+#define HEATER_PIN    7
+#define HEATER_CH     PWM_CH2
 
 #define ACT_FREQ     2500
+
+#define HEATER_MAX_TEMP_C    100.0f 
 
 void ActuatorHAL_Init(void)
 {
@@ -20,15 +22,14 @@ void ActuatorHAL_Init(void)
     DRV_PWM_Start(FAN_TIM, FAN_CH);
     DRV_PWM_SetDuty(FAN_TIM, FAN_CH, 0);
 
-    DRV_PWM_Init(LIGHT_TIM, LIGHT_PORT, LIGHT_PIN, LIGHT_CH, ACT_FREQ);
-    DRV_PWM_Start(LIGHT_TIM, LIGHT_CH);
-    DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, 0);
+    DRV_PWM_Init(HEATER_TIM, HEATER_PORT, HEATER_PIN, HEATER_CH, ACT_FREQ);
+    DRV_PWM_Start(HEATER_TIM, HEATER_CH);
+    DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, 0);
 }
 
 void ActuatorHAL_SetFan(ActuatorType_t type, float value)
 {
     float duty_percent = 0.0f;
-
 
     switch (type)
     {
@@ -41,15 +42,11 @@ void ActuatorHAL_SetFan(ActuatorType_t type, float value)
             break;
 
         case UNIT_RPS:
-					{
+        {
             float rpm = value * 60.0f;
             duty_percent = (rpm * 100.0f) / 3000.0f;
             break;
-					}	
-
-        case UNIT_RAW:
-            duty_percent = value;
-            break;
+        }    
 
         default:
             duty_percent = 0.0f;
@@ -58,9 +55,10 @@ void ActuatorHAL_SetFan(ActuatorType_t type, float value)
     DRV_PWM_SetDuty(FAN_TIM, FAN_CH, (uint8_t)duty_percent);
 }
 
-void ActuatorHAL_SetLight(ActuatorType_t type, float value)
+void ActuatorHAL_SetHeater(ActuatorType_t type, float value)
 {
     float intensity_percent = 0.0f;
+    float temp_celsius = 0.0f;
 
     switch (type)
     {
@@ -68,17 +66,23 @@ void ActuatorHAL_SetLight(ActuatorType_t type, float value)
             intensity_percent = value;
             break;
 
-        case UNIT_LUX:
-            intensity_percent = (value * 100.0f) / 500.0f;
+        case UNIT_Do_C:
+            intensity_percent = (value * 100.0f) / HEATER_MAX_TEMP_C;
             break;
 
-        case UNIT_RAW:
-            intensity_percent = value;
+        case UNIT_Do_F: 
+            temp_celsius = (value - 32.0f) * 5.0f / 9.0f;
+            intensity_percent = (temp_celsius * 100.0f) / HEATER_MAX_TEMP_C;
+            break;
+
+        case UNIT_Do_K:
+            temp_celsius = value - 273.15f;
+            intensity_percent = (temp_celsius * 100.0f) / HEATER_MAX_TEMP_C;
             break;
 
         default:
             intensity_percent = 0.0f;
             break;
     }
-    DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, (uint8_t)intensity_percent);
+    DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, (uint8_t)intensity_percent);
 }
