@@ -55,8 +55,6 @@ void ActuatorHAL_SetFan(ActuatorType_t type, float value)
             duty_percent = 0.0f;
             break;
     }
-    if (duty_percent > 100.0f) duty_percent = 100.0f;
-    if (duty_percent < 0.0f)   duty_percent = 0.0f;
     DRV_PWM_SetDuty(FAN_TIM, FAN_CH, (uint8_t)duty_percent);
 }
 
