@@ -25,26 +25,62 @@ void ActuatorHAL_Init(void)
     DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, 0);
 }
 
-/*
-struct{type, value}
-errorCode  ActuatorHAL_SetFan(uint8_t duty_percent)
+void ActuatorHAL_SetFan(ActuatorType_t type, float value)
 {
-    if (duty_percent > 100)
-        duty_percent = 100;
+    float duty_percent = 0.0f;
 
-		swtich(type):
-		case percent:
-			DRV_PWM_SetDuty(FAN_TIM, FAN_CH, duty_percent);
-			break;
-		case ...:
-			//TODO:...
-			break;
+
+    switch (type)
+    {
+        case UNIT_PERCENT:
+            duty_percent = value;
+            break;
+
+        case UNIT_RPM:
+            duty_percent = (value * 100.0f) / 3000.0f;
+            break;
+
+        case UNIT_RPS:
+					{
+            float rpm = value * 60.0f;
+            duty_percent = (rpm * 100.0f) / 3000.0f;
+            break;
+					}	
+
+        case UNIT_RAW:
+            duty_percent = value;
+            break;
+
+        default:
+            duty_percent = 0.0f;
+            break;
+    }
+    if (duty_percent > 100.0f) duty_percent = 100.0f;
+    if (duty_percent < 0.0f)   duty_percent = 0.0f;
+    DRV_PWM_SetDuty(FAN_TIM, FAN_CH, (uint8_t)duty_percent);
 }
-*/
-void ActuatorHAL_SetLight(uint8_t intensity_percent)
-{
-    if (intensity_percent > 100)
-        intensity_percent = 100;
 
-    DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, intensity_percent);
+void ActuatorHAL_SetLight(ActuatorType_t type, float value)
+{
+    float intensity_percent = 0.0f;
+
+    switch (type)
+    {
+        case UNIT_PERCENT:
+            intensity_percent = value;
+            break;
+
+        case UNIT_LUX:
+            intensity_percent = (value * 100.0f) / 500.0f;
+            break;
+
+        case UNIT_RAW:
+            intensity_percent = value;
+            break;
+
+        default:
+            intensity_percent = 0.0f;
+            break;
+    }
+    DRV_PWM_SetDuty(LIGHT_TIM, LIGHT_CH, (uint8_t)intensity_percent);
 }
