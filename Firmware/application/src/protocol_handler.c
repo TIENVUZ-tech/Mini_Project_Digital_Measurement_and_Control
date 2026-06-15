@@ -48,6 +48,23 @@ static void handle_system(const Frame_t *cmd, GreenhouseData_t *data) {
 			}
 			break;
 			
+		case MID_SET_SETPOINT:
+			// Payload: 4-byte float (temp_setpoint)
+			if (len >= 4) {
+				float new_setpoint;
+				memcpy(&new_setpoint, cmd->payload, sizeof(float));
+				
+				if (new_setpoint >= 0.0f && new_setpoint <= 50.0f) {
+					data->temp_setpoint = new_setpoint;
+					send_status_frame(GID_SYSTEM, MID_SET_SETPOINT, RSP_STATUS_OK);
+				} else {
+					send_status_frame(GID_SYSTEM, MID_SET_SETPOINT, RSP_STATUS_FAIL);
+				}
+			} else {
+				send_status_frame(GID_SYSTEM, MID_SET_SETPOINT, RSP_STATUS_FAIL);
+			}
+			break;
+			
 		default:
 			send_status_frame(GID_SYSTEM, mid, RSP_STATUS_FAIL);
 			break;

@@ -4,7 +4,7 @@
 #include "../../platform/inc/comm_hal.h"
 #include "../../common/inc/frame_common.h"
 #include "./greenhouse_types.h"
-#include <stdint.h>
+#include "stdint.h"
 
 // Init packet state
 void Protocol_Init(void);

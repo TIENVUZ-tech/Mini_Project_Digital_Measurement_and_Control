@@ -25,6 +25,7 @@
 // GID_SYSTEM
 #define MID_SET_MODE        0x1
 #define MID_STATUS_REPORT   0x2
+#define MID_SET_SETPOINT    0x03
 
 // GID_SENSOR
 #define MID_SENSOR_REPORT   0x1

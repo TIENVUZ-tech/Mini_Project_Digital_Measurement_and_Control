@@ -11,6 +11,8 @@ void Delay_us(Timers timer, int us);
 void Delay_ms(Timers timer, int ms);
 void delay_us(int us);
 void delay_ms(int us);
+/*
 void TIM2_Init(void);
 uint32_t DRV_TIM_GetMs(void);
+*/
 #endif

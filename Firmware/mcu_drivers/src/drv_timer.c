@@ -45,6 +45,7 @@ void delay_ms(int ms){
 	Delay_ms(T4, ms);
 }
 
+/*
 void TIM2_Init(void) {
     RCC->APB1ENR |= (1 << 0);   // ? thêm dòng này
 
@@ -69,3 +70,4 @@ void TIM2_IRQHandler(void) {
 uint32_t DRV_TIM_GetMs(void) {
     return s_tick_ms;
 }
+*/
