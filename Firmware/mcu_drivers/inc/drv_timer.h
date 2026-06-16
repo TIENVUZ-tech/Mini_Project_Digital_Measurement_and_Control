@@ -7,10 +7,10 @@ typedef enum{
 	T, T1, T2, T3, T4
 } Timers;
 
-void Delay_us(Timers timer, int us);
-void Delay_ms(Timers timer, int ms);
+void timerInitForDelay(void);
+void SystickInit(void);
 void delay_us(int us);
-void delay_ms(int us);
+void delay_ms(int ms);
 /*
 void TIM2_Init(void);
 uint32_t DRV_TIM_GetMs(void);
