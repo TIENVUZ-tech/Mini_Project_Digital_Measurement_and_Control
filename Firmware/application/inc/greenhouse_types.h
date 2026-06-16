@@ -22,6 +22,7 @@ typedef struct {
     uint8_t fan_state;
     uint8_t heater_state;
     uint16_t fan_pwm;
+    uint16_t heater_pwm;
     SystemMode_t mode;
 } GreenhouseData_t;
 
