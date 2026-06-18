@@ -2,19 +2,19 @@
 #include "../../mcu_drivers/inc/drv_gpio.h"
 #include "../../mcu_drivers/inc/drv_pwm.h"
 
-#define FAN_TIM      PWM_TIM3
-#define FAN_PORT     PA
-#define FAN_PIN      6
-#define FAN_CH       PWM_CH1
+#define FAN_TIM       PWM_TIM3
+#define FAN_PORT      PA
+#define FAN_PIN       6
+#define FAN_CH        PWM_CH1
+#define FAN_MAX_RPM   3000.0f
 
-#define HEATER_TIM    PWM_TIM3
-#define HEATER_PORT   PA
-#define HEATER_PIN    7
-#define HEATER_CH     PWM_CH2
+#define HEATER_TIM        PWM_TIM3
+#define HEATER_PORT       PA
+#define HEATER_PIN        7
+#define HEATER_CH         PWM_CH2
+#define HEATER_MAX_TEMP_C 100.0f
 
-#define ACT_FREQ     2500
-
-#define HEATER_MAX_TEMP_C    100.0f 
+#define ACT_FREQ      2500
 
 void ActuatorHAL_Init(void)
 {
@@ -27,62 +27,67 @@ void ActuatorHAL_Init(void)
     DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, 0);
 }
 
-void ActuatorHAL_SetFan(ActuatorType_t type, float value)
+void ActuatorHAL_Set(ActuatorPrams_struct_t actuatorPrams)
 {
-    float duty_percent = 0.0f;
+    float percent = 0.0f;
 
-    switch (type)
+    if (actuatorPrams.mode == ACT_MODE_ONOFF)
     {
-        case UNIT_PERCENT:
-            duty_percent = value;
-            break;
-
-        case UNIT_RPM:
-            duty_percent = (value * 100.0f) / 3000.0f;
-            break;
-
-        case UNIT_RPS:
+        
+        percent = (actuatorPrams.value != 0.0f) ? 100.0f : 0.0f;
+    }
+    else 
+    {
+        if (actuatorPrams.index == ACTUATOR_FAN)
         {
-            float rpm = value * 60.0f;
-            duty_percent = (rpm * 100.0f) / 3000.0f;
-            break;
-        }    
-
-        default:
-            duty_percent = 0.0f;
-            break;
+            switch (actuatorPrams.unit)
+            {
+                case UNIT_PERCENT:
+                    percent = actuatorPrams.value;
+                    break;
+                case UNIT_RPM:
+                    percent = (actuatorPrams.value * 100.0f) / FAN_MAX_RPM;
+                    break;
+                case UNIT_RPS:
+                {
+                    float rpm = actuatorPrams.value * 60.0f;
+                    percent = (rpm * 100.0f) / FAN_MAX_RPM;
+                    break;
+                }
+                default:
+                    percent = 0.0f;
+                    break;
+            }
+        }
+        else 
+        {
+            float temp_c = 0.0f;
+            switch (actuatorPrams.unit)
+            {
+                case UNIT_PERCENT:
+                    percent = actuatorPrams.value;
+                    break;
+                case UNIT_DEG_C:
+                    temp_c = actuatorPrams.value;
+                    percent = (temp_c * 100.0f) / HEATER_MAX_TEMP_C;
+                    break;
+                case UNIT_DEG_F:
+                    temp_c = (actuatorPrams.value - 32.0f) * 5.0f / 9.0f;
+                    percent = (temp_c * 100.0f) / HEATER_MAX_TEMP_C;
+                    break;
+                case UNIT_DEG_K:
+                    temp_c = actuatorPrams.value - 273.15f;
+                    percent = (temp_c * 100.0f) / HEATER_MAX_TEMP_C;
+                    break;
+                default:
+                    percent = 0.0f;
+                    break;
+            }
+        }
     }
-    DRV_PWM_SetDuty(FAN_TIM, FAN_CH, (uint8_t)duty_percent);
-}
 
-void ActuatorHAL_SetHeater(ActuatorType_t type, float value)
-{
-    float intensity_percent = 0.0f;
-    float temp_celsius = 0.0f;
-
-    switch (type)
-    {
-        case UNIT_PERCENT:
-            intensity_percent = value;
-            break;
-
-        case UNIT_Do_C:
-            intensity_percent = (value * 100.0f) / HEATER_MAX_TEMP_C;
-            break;
-
-        case UNIT_Do_F: 
-            temp_celsius = (value - 32.0f) * 5.0f / 9.0f;
-            intensity_percent = (temp_celsius * 100.0f) / HEATER_MAX_TEMP_C;
-            break;
-
-        case UNIT_Do_K:
-            temp_celsius = value - 273.15f;
-            intensity_percent = (temp_celsius * 100.0f) / HEATER_MAX_TEMP_C;
-            break;
-
-        default:
-            intensity_percent = 0.0f;
-            break;
-    }
-    DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, (uint8_t)intensity_percent);
+    if (actuatorPrams.index == ACTUATOR_FAN)
+        DRV_PWM_SetDuty(FAN_TIM, FAN_CH, (uint16_t)percent);
+    else
+        DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, (uint16_t)percent);
 }
