@@ -2,11 +2,11 @@
 #include "../../mcu_drivers/inc/drv_gpio.h"
 #include "../../mcu_drivers/inc/drv_pwm.h"
 
-#define FAN_TIM       PWM_TIM3
-#define FAN_PORT      PA
-#define FAN_PIN       6
-#define FAN_CH        PWM_CH1
-#define FAN_MAX_RPM   3000.0f
+#define FAN_TIM           PWM_TIM3
+#define FAN_PORT          PA
+#define FAN_PIN           6
+#define FAN_CH            PWM_CH1
+#define FAN_MAX_RPM       3000.0f
 
 #define HEATER_TIM        PWM_TIM3
 #define HEATER_PORT       PA
@@ -14,7 +14,7 @@
 #define HEATER_CH         PWM_CH2
 #define HEATER_MAX_TEMP_C 100.0f
 
-#define ACT_FREQ      2500
+#define ACT_FREQ          2500
 
 void ActuatorHAL_Init(void)
 {
@@ -27,67 +27,133 @@ void ActuatorHAL_Init(void)
     DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, 0);
 }
 
-void ActuatorHAL_Set(ActuatorPrams_struct_t actuatorPrams)
+errorCode ActuatorHAL_Set(ActuatorPrams_struct_t actuatorPrams)
 {
+    if (actuatorPrams.index != ACTUATOR_FAN && actuatorPrams.index != ACTUATOR_HEATER)
+    {
+        return ACTUATOR_ERROR_INDEX;
+    }
+
+    if (actuatorPrams.mode != ACT_MODE_PWM && actuatorPrams.mode != ACT_MODE_ONOFF)
+    {
+        return ACTUATOR_ERROR_MODE;
+    }
+
     float percent = 0.0f;
 
-    if (actuatorPrams.mode == ACT_MODE_ONOFF)
+    if (actuatorPrams.index == ACTUATOR_FAN)
     {
-        
-        percent = (actuatorPrams.value != 0.0f) ? 100.0f : 0.0f;
-    }
-    else 
-    {
-        if (actuatorPrams.index == ACTUATOR_FAN)
+        if (actuatorPrams.mode == ACT_MODE_ONOFF)
         {
+            if (actuatorPrams.value == 100.0f)
+            {
+                percent = 100.0f;
+            }
+            else if (actuatorPrams.value == 0.0f)
+            {
+                percent = 0.0f;
+            }
+            else
+            {
+                return ACTUATOR_ERROR_VALUE;
+            }
+        }
+        else 
+        {
+            if (actuatorPrams.unit != UNIT_PERCENT && 
+                actuatorPrams.unit != UNIT_RPM && 
+                actuatorPrams.unit != UNIT_RPS)
+            {
+                return ACTUATOR_ERROR_UNIT;
+            }
+
             switch (actuatorPrams.unit)
             {
                 case UNIT_PERCENT:
+                    if (actuatorPrams.value < 0.0f || actuatorPrams.value > 100.0f) return ACTUATOR_ERROR_VALUE;
                     percent = actuatorPrams.value;
                     break;
                 case UNIT_RPM:
+                    if (actuatorPrams.value < 0.0f || actuatorPrams.value > FAN_MAX_RPM) return ACTUATOR_ERROR_VALUE;
                     percent = (actuatorPrams.value * 100.0f) / FAN_MAX_RPM;
                     break;
                 case UNIT_RPS:
                 {
                     float rpm = actuatorPrams.value * 60.0f;
+                    if (rpm < 0.0f || rpm > FAN_MAX_RPM) return ACTUATOR_ERROR_VALUE;
                     percent = (rpm * 100.0f) / FAN_MAX_RPM;
                     break;
                 }
                 default:
-                    percent = 0.0f;
-                    break;
+                    return ACTUATOR_ERROR_UNIT;
+            }
+        }
+    }
+    else 
+    {
+        if (actuatorPrams.mode == ACT_MODE_ONOFF)
+        {
+            if (actuatorPrams.value == 100.0f)
+            {
+                percent = 100.0f;
+            }
+            else if (actuatorPrams.value == 0.0f)
+            {
+                percent = 0.0f;
+            }
+            else
+            {
+                return ACTUATOR_ERROR_VALUE;
             }
         }
         else 
         {
+            if (actuatorPrams.unit != UNIT_PERCENT && 
+                actuatorPrams.unit != UNIT_DEG_C && 
+                actuatorPrams.unit != UNIT_DEG_F && 
+                actuatorPrams.unit != UNIT_DEG_K)
+            {
+                return ACTUATOR_ERROR_UNIT;
+            }
+
             float temp_c = 0.0f;
             switch (actuatorPrams.unit)
             {
                 case UNIT_PERCENT:
+                    if (actuatorPrams.value < 0.0f || actuatorPrams.value > 100.0f) return ACTUATOR_ERROR_VALUE;
                     percent = actuatorPrams.value;
                     break;
                 case UNIT_DEG_C:
                     temp_c = actuatorPrams.value;
+                    if (temp_c < 0.0f || temp_c > HEATER_MAX_TEMP_C) return ACTUATOR_ERROR_VALUE;
                     percent = (temp_c * 100.0f) / HEATER_MAX_TEMP_C;
                     break;
                 case UNIT_DEG_F:
                     temp_c = (actuatorPrams.value - 32.0f) * 5.0f / 9.0f;
+                    if (temp_c < 0.0f || temp_c > HEATER_MAX_TEMP_C) return ACTUATOR_ERROR_VALUE;
                     percent = (temp_c * 100.0f) / HEATER_MAX_TEMP_C;
                     break;
                 case UNIT_DEG_K:
                     temp_c = actuatorPrams.value - 273.15f;
+                    if (temp_c < 0.0f || temp_c > HEATER_MAX_TEMP_C) return ACTUATOR_ERROR_VALUE;
                     percent = (temp_c * 100.0f) / HEATER_MAX_TEMP_C;
                     break;
                 default:
-                    percent = 0.0f;
-                    break;
+                    return ACTUATOR_ERROR_UNIT;
             }
         }
     }
 
+    uint16_t duty_cycle = (uint16_t)(percent + 0.5f);
+
     if (actuatorPrams.index == ACTUATOR_FAN)
-        DRV_PWM_SetDuty(FAN_TIM, FAN_CH, (uint16_t)percent);
+    {
+        DRV_PWM_SetDuty(FAN_TIM, FAN_CH, duty_cycle);
+    }
     else
-        DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, (uint16_t)percent);
+    {
+        DRV_PWM_SetDuty(HEATER_TIM, HEATER_CH, duty_cycle);
+    }
+
+    return ACTUATOR_OK;
 }
