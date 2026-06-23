@@ -6,5 +6,6 @@
 #include "../../platform/inc/comm_hal.h"
 #include "../../platform/inc/soft_timer.h"
 #include "../../platform/inc/actuator_hal.h"
+#include "../../application/inc/control_app.h"
 
 #endif

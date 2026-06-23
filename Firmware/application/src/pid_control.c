@@ -11,7 +11,7 @@ void PID_Init(PIDController_t *pid) {
 }
 
 float PID_Compute(PIDController_t *pid, float setpoint, float measurement) {
-    float error = measurement - setpoint;
+    float error = setpoint - measurement;
 
     if (error < 0.0f) {
         pid->integrator = 0.0f;

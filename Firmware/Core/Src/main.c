@@ -44,9 +44,13 @@ int main(void)
 	while (1)
 	{
 		SoftTimer_Dispatch(&s_report_timer);
+<<<<<<< Updated upstream
 		SoftTimer_Dispatch(&DHT22_timer);
  
+=======
+>>>>>>> Stashed changes
 		Protocol_Run(&g_data);
+		ControlApp_Update(&g_data);
  
 		if (s_report_flag)
 		{

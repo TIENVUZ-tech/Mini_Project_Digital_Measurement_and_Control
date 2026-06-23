@@ -17,7 +17,6 @@ static FrameState_t s_rx_state = WAIT_SOF_STATE;
 static FrameUnion_t s_rx_frame;
 static uint16_t s_rx_payload_idx = 0;
 static uint16_t s_rx_length = 0;
-static FrameQueue_t s_rx_queue;
 
 static SoftTimer_t s_rx_byte_timeout;
 static volatile uint8_t s_rx_byte_timeout_flag = 0;
@@ -28,7 +27,7 @@ static void on_rx_byte_timeout() {
 
 void CommHAL_Init(void){
 	DRV_UART1_Init(BAUD_RATE);
-	FrameQueue_Init(&s_rx_queue);
+	QueueMnr_Init();
 	
 	s_rx_state = WAIT_SOF_STATE;
 	s_rx_payload_idx = 0;
@@ -102,7 +101,7 @@ void CommHAL_RxByteCallback(uint8_t byte) {
 }
 
 uint8_t CommHAL_ReceiveFrame(FrameUnion_t *frame) {
-	return FrameQueue_Pop(&s_rx_queue, frame);
+	return RX_Queue_Pop(frame);
 }
 
 void CommHAL_SendFrame(const FrameUnion_t *frame) {

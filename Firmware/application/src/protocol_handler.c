@@ -1,7 +1,4 @@
 #include "../inc/protocol_handler.h"
-#include "../inc/control_app.h"
-#include "../../platform/inc/soft_timer.h"
-#include "string.h"
 
 // Soft timmer
 static SoftTimer_t s_rx_timeout;
@@ -31,7 +28,7 @@ static uint8_t enqueue_frame(uint8_t gid, uint8_t mid, const uint8_t *payload, u
 	if (len > 0 && payload != NULL) {
 		memcpy(rsp.data.payload, payload, len);
 	}
-	SoftTimer_Start(&s_tx_timeout, 2000, on_rx_timeout);
+	SoftTimer_Start(&s_tx_timeout, 2000, on_tx_timeout);
 	return TX_Queue_Push(&rsp);
 }
 
@@ -52,9 +49,11 @@ static void handle_system(const Frame_t *cmd, GreenhouseData_t *data) {
 			if (len == 1) {
 				if (cmd->payload[0] == 0x00) {
 					data->mode = MODE_AUTO;
+					ControlApp_SetMode(MODE_AUTO);
 					send_status_frame(GID_SYSTEM, MID_SET_MODE, RSP_SET_MODE_OK);
 				} else if (cmd->payload[0] == 0x01) {
 					data->mode = MODE_MANUAL;
+					ControlApp_SetMode(MODE_MANUAL);
 					send_status_frame(GID_SYSTEM, MID_SET_MODE, RSP_SET_MODE_OK);
 				} else {
 					send_status_frame(GID_SYSTEM, MID_SET_MODE, RSP_SET_MODE_FAIL);
@@ -72,6 +71,7 @@ static void handle_system(const Frame_t *cmd, GreenhouseData_t *data) {
 				
 				if (new_setpoint >= 0.0f && new_setpoint <= 50.0f) {
 					data->temp_setpoint = new_setpoint;
+					ControlApp_SetTempSetPoint(new_setpoint);
 					send_status_frame(GID_SYSTEM, MID_SET_SETPOINT, RSP_SET_SETPOINT_OK);
 				} else {
 					send_status_frame(GID_SYSTEM, MID_SET_SETPOINT, RSP_SET_SETPOINT_FAIL);
@@ -110,28 +110,60 @@ static void handle_system(const Frame_t *cmd, GreenhouseData_t *data) {
 static void handle_actuator(const Frame_t *cmd, GreenhouseData_t *data) {
 	uint8_t mid = Frame_GetMid(cmd->id);
 	uint16_t len = Frame_GetLength(cmd);
-	
+
 	switch(mid) {
-		
-		case MID_MANUAL_ACTUATOR:
+
+		case MID_MANUAL_ACTUATOR: {
 			/* Payload[0]: actuator id (0=fan, 1=heater)
-				 Payload[1]: state(0=OFF, 1=ON) */
-			if (len == 2 && data->mode == MODE_MANUAL) {
-				if (cmd->payload[0] == 0x00) {
-					data->fan_state = cmd->payload[1];
-					send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_OK);
-				} else if (cmd->payload[0] == 0x01) {
-					data->heater_state = cmd->payload[1];
-					send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_OK);
-				} else {
-					send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_FAIL);
-				}
-			} else {
+			   Payload[1]: state (0=OFF, 1=ON) */
+
+			if (len != 2) {
 				send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_INVALID_LENGTH);
+				break;
 			}
+
+			if (data->mode != MODE_MANUAL) {
+				send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_FAIL);
+				break;
+			}
+
+			uint8_t actuator = cmd->payload[0];
+			uint8_t state = cmd->payload[1];
+
+			if (state != ACT_OFF && state != ACT_ON) {
+				send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_FAIL);
+				break;
+			}
+
+			if (actuator != ACTUATOR_FAN && actuator != ACTUATOR_HEATER) {
+				send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_FAIL);
+				break;
+			}
+
+			ActuatorPrams_struct_t actuator_cmd;
+			actuator_cmd.index = (ActuatorDevice_t)actuator;
+			actuator_cmd.mode = ACT_MODE_ONOFF;
+			actuator_cmd.unit = UNIT_PERCENT;
+			actuator_cmd.value = (state == ACT_ON) ? 100.0f : 0.0f;
+
+			if (ActuatorHAL_Set(actuator_cmd) != ACTUATOR_OK) {
+				send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_FAIL);
+				break;
+			}
+
+			if (actuator == ACTUATOR_FAN) {
+				data->fan_state = state;
+				data->fan_pwm = (state == ACT_ON) ? 100 : 0;
+			} else {
+				data->heater_state = state;
+				data->heater_pwm = (state == ACT_ON) ? 100 : 0;
+			}
+
+			send_status_frame(GID_ACTUATOR, MID_MANUAL_ACTUATOR, RSP_MANUAL_ACTUATOR_OK);
 			break;
-			
-		default: 
+		}
+
+		default:
 			send_status_frame(GID_ACTUATOR, mid, RSP_ACTUATOR_FAIL);
 			break;
 	}
@@ -146,7 +178,11 @@ static void handle_pid(const Frame_t *cmd, GreenhouseData_t *data) {
 		case MID_SET_PID:
 			// Payload: Kp 4B float, Ki 4B float, Kd 4B float
 			if (len == 12) {
-				// Call PID_SetGains()
+				float kp, ki, kd;
+				memcpy(&kp, &cmd->payload[0], 4);
+				memcpy(&ki, &cmd->payload[4], 4);
+				memcpy(&kd, &cmd->payload[8], 4);
+				ControlApp_SetPIDTune(kp, ki, kd);
 				send_status_frame(GID_PID, MID_SET_PID, RSP_SET_PID_OK);
 			} else {
 				send_status_frame(GID_PID, MID_SET_PID, RSP_INVALID_LENGTH);

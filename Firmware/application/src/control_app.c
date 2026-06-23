@@ -101,7 +101,7 @@ void ControlApp_SetMode(SystemMode_t mode) {
     PID_Init(&heater_pid);
 }
 
-void ControlApp_SetTempSetpoint(float temp) {
+void ControlApp_SetTempSetPoint(float temp) {
     target_temperature = temp;
 }
 

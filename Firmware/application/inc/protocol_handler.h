@@ -4,6 +4,10 @@
 #include "../../platform/inc/comm_hal.h"
 #include "../../common/inc/frame_common.h"
 #include "../../common/inc/queue_manager.h"
+#include "../../platform/inc/actuator_hal.h"
+#include "../inc/control_app.h"
+#include "../../platform/inc/soft_timer.h"
+#include "string.h"
 #include "./greenhouse_types.h"
 #include "stdint.h"
 
