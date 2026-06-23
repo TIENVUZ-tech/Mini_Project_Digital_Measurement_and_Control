@@ -3,6 +3,8 @@
 
 float Humidity;
 float Temperature;
+uint8_t DHT22_Data[5];
+
 
 void DHT22_Start(Ports port, unsigned short pin){
 	timerInitForDelay();
