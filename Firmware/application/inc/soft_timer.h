@@ -2,8 +2,7 @@
 #define SOFT_TIMER_H
 
 #include "stm32f10x.h"
-#include "drv_timer.h"
-
+#include "../../mcu_drivers/inc/drv_timer.h"
 
 typedef void (*TimerCallback_t)(void);
 
