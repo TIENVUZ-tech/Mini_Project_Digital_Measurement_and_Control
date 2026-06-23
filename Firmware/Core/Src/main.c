@@ -15,6 +15,7 @@ static GreenhouseData_t g_data = {
 
 // Soft timmer
 static SoftTimer_t s_report_timer;
+static SoftTimer_t DHT22_timer;
 
 // Flags set by timer callbacks, cleared by main loop
 static volatile uint8_t s_report_flag = 0;
@@ -28,6 +29,7 @@ void SysTick_Handler(void)
 {
 	SoftTimer_Update(&s_report_timer);
 	Protocol_SystickUpdate();   // update rx + tx timeout 
+	SoftTimer_Update(&DHT22_timer);
 }
 
 int main(void)
@@ -37,10 +39,12 @@ int main(void)
 	ActuatorHAL_Init();
  
 	SoftTimer_Start(&s_report_timer, 2000, on_report_timer);
+	SoftTimer_Start(&DHT22_timer, 2500, DHT22_ReadData);
  
 	while (1)
 	{
 		SoftTimer_Dispatch(&s_report_timer);
+		SoftTimer_Dispatch(&DHT22_timer);
  
 		Protocol_Run(&g_data);
  
