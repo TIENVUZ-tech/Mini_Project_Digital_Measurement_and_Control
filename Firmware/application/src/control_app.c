@@ -4,6 +4,8 @@
 #include "../../platform/inc/soft_timer.h"
 #include "../../platform/inc/sensor_hal.h"
 #include "../inc/protocol_handler.h"
+#include "../../common/inc/frame_common.h"
+#include "../../common/inc/queue_manager.h"
 
 // Greenhouse data
 static GreenhouseData_t g_data = {
@@ -17,6 +19,37 @@ static GreenhouseData_t g_data = {
 	.report_mode = REPORT_MODE_STREAM,
 	.report_once_pending = 0
 };
+
+static uint8_t actuator_error_to_mid(errorCode code)
+{
+    switch (code)
+    {
+        case ACTUATOR_ERROR_INDEX: return MID_ACT_ERR_INDEX;
+        case ACTUATOR_ERROR_MODE:  return MID_ACT_ERR_MODE;
+        case ACTUATOR_ERROR_UNIT:  return MID_ACT_ERR_UNIT;
+        case ACTUATOR_ERROR_VALUE: return MID_ACT_ERR_VALUE;
+        default:                   return MID_ACT_ERR_VALUE; // fallback, không nên x?y ra
+    }
+}
+
+static void actuator_push_error(errorCode code, uint8_t   mid, ActuatorDevice_t index)
+{
+    FrameUnion_t err_frame;
+    err_frame.data.sof  = FRAME_SOF;
+    err_frame.data.type = FRAME_TYPE_RSP;
+    err_frame.data.id   = Frame_MakeId(GID_ERROR, mid);
+    Frame_SetLength(&err_frame.data, 3);
+    err_frame.data.payload[0] = (uint8_t)code;
+    err_frame.data.payload[1] = (uint8_t)index;
+    err_frame.data.payload[2] = mid;
+ 
+    TX_Queue_Push(&err_frame);
+}
+
+#define ACT_ERROR(code, mid, index)                          \
+    do {                                                      \
+        actuator_push_error((code), (mid), (index));          \
+    } while (0)
 
 static SoftTimer_t s_sensor_timer;
 static SoftTimer_t s_report_timer;
@@ -113,6 +146,9 @@ void ControlApp_Run(void)
 
 
 void ControlApp_Update(GreenhouseData_t *data) {
+	
+	errorCode error;
+	
 	if (data == 0) return;
 
 	data->temp_setpoint = target_temperature;
@@ -139,10 +175,26 @@ void ControlApp_Update(GreenhouseData_t *data) {
 						data->fan_state = ACT_OFF;
 						
 						heater_cmd.value = 0.0f;
-						ActuatorHAL_Set(heater_cmd);
+						error = ActuatorHAL_Set(heater_cmd);
+                if (error != ACTUATOR_OK) {
+                    ACT_ERROR(error, actuator_error_to_mid(error), heater_cmd.index);
+                    data->heater_pwm = 0;
+                    data->heater_state = ACT_OFF;
+									  data->fan_pwm = 0;
+                    data->fan_state = ACT_OFF;
+                    break;
+                }
 						
 						fan_cmd.value = 0.0f;
-						ActuatorHAL_Set(fan_cmd);
+						error = ActuatorHAL_Set(fan_cmd);
+                if (error != ACTUATOR_OK) {
+                    ACT_ERROR(error, actuator_error_to_mid(error), fan_cmd.index);
+									  data->heater_pwm = 0;
+                    data->heater_state = ACT_OFF;
+                    data->fan_pwm = 0;
+                    data->fan_state = ACT_OFF;
+                    break;
+                }
 						break; 
 				}
 
@@ -153,7 +205,15 @@ void ControlApp_Update(GreenhouseData_t *data) {
 					data->heater_state = (data->heater_pwm > 0) ? ACT_ON : ACT_OFF;
 
 					heater_cmd.value = (float)data->heater_pwm;
-					ActuatorHAL_Set(heater_cmd);
+					error = ActuatorHAL_Set(heater_cmd);
+            if (error != ACTUATOR_OK) {
+                ACT_ERROR(error, actuator_error_to_mid(error), heater_cmd.index);
+                data->heater_pwm = 0;
+                data->heater_state = ACT_OFF;
+							  data->fan_pwm = 0;
+                data->fan_state = ACT_OFF;
+                break;
+            }
 
 					if (data->temperature > (data->temp_setpoint + 5.0f)) {
 							data->fan_pwm = 100; 
@@ -165,7 +225,15 @@ void ControlApp_Update(GreenhouseData_t *data) {
 					}
 					
 					fan_cmd.value = (float)data->fan_pwm;
-					ActuatorHAL_Set(fan_cmd);
+					error = ActuatorHAL_Set(fan_cmd);
+            if (error != ACTUATOR_OK) {
+                ACT_ERROR(error, actuator_error_to_mid(error), fan_cmd.index);
+							  data->heater_pwm = 0;
+                data->heater_state = ACT_OFF;
+                data->fan_pwm = 0;
+                data->fan_state = ACT_OFF;
+                break;
+            }
 					
 					break;
 			}
