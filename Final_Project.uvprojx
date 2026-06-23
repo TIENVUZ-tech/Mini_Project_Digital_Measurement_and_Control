@@ -463,11 +463,6 @@
               <FilePath>.\Firmware\platform\inc\sensor_hal.h</FilePath>
             </File>
             <File>
-              <FileName>soft_timer.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Firmware\platform\inc\soft_timer.h</FilePath>
-            </File>
-            <File>
               <FileName>actuator_hal.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Firmware\platform\src\actuator_hal.c</FilePath>
@@ -487,16 +482,16 @@
               <FileType>1</FileType>
               <FilePath>.\Firmware\platform\src\soft_timer.c</FilePath>
             </File>
+            <File>
+              <FileName>soft_timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Firmware\platform\inc\soft_timer.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
           <GroupName>application</GroupName>
           <Files>
-            <File>
-              <FileName>app_config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Firmware\application\inc\app_config.h</FilePath>
-            </File>
             <File>
               <FileName>control_app.h</FileName>
               <FileType>5</FileType>
@@ -518,14 +513,14 @@
               <FilePath>.\Firmware\application\inc\protocol_handler.h</FilePath>
             </File>
             <File>
-              <FileName>control_app.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Firmware\application\src\control_app.c</FilePath>
-            </File>
-            <File>
               <FileName>pid_control.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Firmware\application\src\pid_control.c</FilePath>
+            </File>
+            <File>
+              <FileName>control_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Firmware\application\src\control_app.c</FilePath>
             </File>
             <File>
               <FileName>protocol_handler.c</FileName>

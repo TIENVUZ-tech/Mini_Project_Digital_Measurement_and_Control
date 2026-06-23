@@ -14,7 +14,7 @@ static void on_rx_timeout(void) {
 }
 
 static void on_tx_timeout(void) {
-	s_rx_timeout_flag = 1;
+	s_tx_timeout_flag = 1;
 }
 
 // Build and send a response frame
@@ -237,7 +237,7 @@ void Protocol_Run(GreenhouseData_t *data) {
 	FrameUnion_t tx_frame;
 	if (TX_Queue_Pop(&tx_frame)) {
 		CommHAL_SendFrame(&tx_frame);
-		SoftTimer_Stop(&s_rx_timeout);
+		SoftTimer_Stop(&s_tx_timeout);
 	}
 }
 

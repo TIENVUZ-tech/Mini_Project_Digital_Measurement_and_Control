@@ -1,9 +1,6 @@
 #include "stm32f10x.h"
 #include "../inc/drv_timer.h"
 
-#include "stm32f10x.h"
-#include "../inc/drv_timer.h"
-
 volatile uint32_t tick = 0;
 
 void timerInitForDelay(void){

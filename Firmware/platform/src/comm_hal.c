@@ -76,8 +76,8 @@ void CommHAL_RxByteCallback(uint8_t byte) {
 		
 			if (s_rx_length == 0) {
 				SoftTimer_Stop(&s_rx_byte_timeout);
-				uint8_t state = RX_Queue_Push(&s_rx_frame);
-				if (!state) s_rx_state = WAIT_SOF_STATE;
+				RX_Queue_Push(&s_rx_frame);
+				s_rx_state = WAIT_SOF_STATE;
 			} else if (s_rx_length > FRAME_MAX_PAYLOAD) {
 				s_rx_state = WAIT_SOF_STATE;
 			} else {

@@ -29,7 +29,10 @@ int DHT22_Check_Response(Ports port, unsigned short pin){
 			response = -1;
 		}
 	}
-	while(GPIO_Read(port, pin) == 1);
+	uint32_t timeout = 10000;
+	while(GPIO_Read(port, pin) == 1) {
+		if (--timeout == 0) return -1;
+	}
 	
 	return response;
 }
@@ -82,7 +85,7 @@ void DHT22_ReadData(){
 
 }
 
-float readTemperature(){
+float ReadTemperature(){
 	return Temperature;
 }
 

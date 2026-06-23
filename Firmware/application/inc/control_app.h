@@ -5,6 +5,9 @@
 
 
 void ControlApp_Init(void);
+void ControlApp_SystickUpdate(void);
+void ControlApp_Run(void);
+
 void ControlApp_Update(GreenhouseData_t *data);
 void ControlApp_SetMode(SystemMode_t mode);
 void ControlApp_SetTempSetPoint(float temp);
