@@ -7,6 +7,7 @@ static GreenhouseData_t g_data = {
 	.fan_state          = 0,
 	.heater_state       = 0,
 	.fan_pwm            = 0,
+	.heater_pwm         = 0,
 	.mode               = MODE_AUTO,
 	.report_mode        = REPORT_MODE_ONE_SHOT,
 	.report_once_pending = 1

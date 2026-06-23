@@ -1,5 +1,5 @@
-#include "pid_control.h"
-#include "control_app.h"
+#include "../inc/pid_control.h"
+#include "../inc/control_app.h"
 #include <stdint.h>
 
 void PID_Init(PIDController_t *pid) {

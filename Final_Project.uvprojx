@@ -518,11 +518,6 @@
               <FilePath>.\Firmware\application\inc\protocol_handler.h</FilePath>
             </File>
             <File>
-              <FileName>sensor_app.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Firmware\application\inc\sensor_app.h</FilePath>
-            </File>
-            <File>
               <FileName>control_app.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Firmware\application\src\control_app.c</FilePath>
@@ -536,11 +531,6 @@
               <FileName>protocol_handler.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Firmware\application\src\protocol_handler.c</FilePath>
-            </File>
-            <File>
-              <FileName>sensor_app.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Firmware\application\src\sensor_app.c</FilePath>
             </File>
           </Files>
         </Group>

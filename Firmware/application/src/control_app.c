@@ -1,6 +1,6 @@
-#include "control_app.h"
-#include "pid_control.h"
-#include "actuator_hal.h" 
+#include "../inc/control_app.h"
+#include "../inc/pid_control.h"
+#include "../../platform/inc/actuator_hal.h" 
 
 static PIDController_t heater_pid;
 

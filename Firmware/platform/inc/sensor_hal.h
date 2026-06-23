@@ -2,7 +2,7 @@
 #define SENSOR_HAL_H
 
 #include "stm32f10x.h"
-#include "drv_gpio.h"
+#include "../../mcu_drivers/inc/drv_gpio.h"
 
 void DHT22_Start(Ports port, unsigned short pin);
 int DHT22_Check_Response(Ports port, unsigned short pin);

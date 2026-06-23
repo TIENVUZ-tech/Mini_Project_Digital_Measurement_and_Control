@@ -2,7 +2,7 @@
 #include "../inc/drv_timer.h"
 
 #include "stm32f10x.h"
-#include "drv_timer.h"
+#include "../inc/drv_timer.h"
 
 volatile uint32_t tick = 0;
 

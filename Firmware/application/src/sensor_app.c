@@ -1,7 +1,6 @@
 #include "stm32f10x.h"
-#include "soft_timer.h"
-#include "sensor_hal.h"
-#include "drv_timer.h"
+#include "../../platform/inc/soft_timer.h"
+#include "../../platform/inc/sensor_hal.h"
 
 #define DHT22_Port PA
 #define DHT22_Pin 0

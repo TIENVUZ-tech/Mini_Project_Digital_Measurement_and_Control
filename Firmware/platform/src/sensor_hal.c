@@ -1,5 +1,5 @@
-#include "sensor_hal.h"
-#include "drv_timer.h"
+#include "../inc/sensor_hal.h"
+#include "../../mcu_drivers/inc/drv_timer.h"
 
 void DHT22_Start(Ports port, unsigned short pin){
 	GPIO_Init(port, pin, OUT50, O_GP_PP);
