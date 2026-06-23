@@ -1,5 +1,5 @@
-#include "drv_timer.h"
-#include "soft_timer.h"
+#include "../../mcu_drivers/inc/drv_timer.h"
+#include "../inc/soft_timer.h"
 
 void SoftTimer_Start(SoftTimer_t *timer, uint32_t period_ms, TimerCallback_t callback){
 	timer->counter = period_ms;
