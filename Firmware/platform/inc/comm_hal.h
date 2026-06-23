@@ -9,6 +9,8 @@
 // Initialize: init UART driver, init queue, reset state machine
 void CommHAL_Init(void);
 
+void CommHAL_SystickUpdate(void);
+
 // Callback calls from DRV_USART1_IRQ every time 1 byte is received
 void CommHAL_RxByteCallback(uint8_t byte);
 

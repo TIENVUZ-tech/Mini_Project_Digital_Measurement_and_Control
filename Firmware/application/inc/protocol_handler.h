@@ -3,11 +3,14 @@
 
 #include "../../platform/inc/comm_hal.h"
 #include "../../common/inc/frame_common.h"
+#include "../../common/inc/queue_manager.h"
 #include "./greenhouse_types.h"
 #include "stdint.h"
 
 // Init packet state
 void Protocol_Init(void);
+
+void Protocol_SystickUpdate(void);
 
 // Read all bytes from CommHAL, parse each byte
 void Protocol_Run(GreenhouseData_t *data);

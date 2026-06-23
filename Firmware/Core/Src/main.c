@@ -1,31 +1,61 @@
 #include "../Inc/main.h"
 
+// Greenhouse data
 static GreenhouseData_t g_data = {
-	.temperature = 28.5f,
-	.temp_setpoint = 25.0f,
-	.fan_state = 0,
-	.heater_state = 0,
-	.fan_pwm = 0,
-	.mode = MODE_AUTO
+	.temperature        = 28.5f,
+	.temp_setpoint      = 25.0f,
+	.fan_state          = 0,
+	.heater_state       = 0,
+	.fan_pwm            = 0,
+	.mode               = MODE_AUTO,
+	.report_mode        = REPORT_MODE_ONE_SHOT,
+	.report_once_pending = 1
 };
 
-int main() {
-	CommHAL_Init();
+// Soft timmer
+static SoftTimer_t s_report_timer;
+
+// Flags set by timer callbacks, cleared by main loop
+static volatile uint8_t s_report_flag = 0;
+
+// Timer callbacks
+static void on_report_timer(void) {
+	s_report_flag = 1;
+}
+
+void SysTick_Handler(void)
+{
+	SoftTimer_Update(&s_report_timer);
+	Protocol_SystickUpdate();   // update rx + tx timeout 
+}
+
+int main(void)
+{
+	SystickInit();
 	Protocol_Init();
-	TIM2_Init();
-	
-	uint8_t data[11] = "Hello world";
-	CommHAL_SendBytes(data, 11);
-	
-	uint32_t last_report_ms = 0;
-	
-	while(1) {
+	ActuatorHAL_Init();
+ 
+	SoftTimer_Start(&s_report_timer, 2000, on_report_timer);
+ 
+	while (1)
+	{
+		SoftTimer_Dispatch(&s_report_timer);
+ 
 		Protocol_Run(&g_data);
-		
-		uint32_t now = DRV_TIM_GetMs();
-		if (now - last_report_ms >= 2000) {
-			last_report_ms = now;
-			Protocol_SendSensorData(&g_data);
+ 
+		if (s_report_flag)
+		{
+			s_report_flag = 0;
+ 
+			if (g_data.report_mode == REPORT_MODE_STREAM)
+			{
+				Protocol_SendSensorData(&g_data);
+			}
+			else if (g_data.report_once_pending)
+			{
+				g_data.report_once_pending = 0;
+				Protocol_SendSensorData(&g_data);
+			}
 		}
 	}
 }

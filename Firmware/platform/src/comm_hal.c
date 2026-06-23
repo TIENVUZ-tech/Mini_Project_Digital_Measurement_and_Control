@@ -1,4 +1,6 @@
 #include "../inc/comm_hal.h"
+#include "../inc/soft_timer.h"
+#include "../../common/inc/queue_manager.h"
 
 #define BAUD_RATE 115200
 
@@ -17,6 +19,13 @@ static uint16_t s_rx_payload_idx = 0;
 static uint16_t s_rx_length = 0;
 static FrameQueue_t s_rx_queue;
 
+static SoftTimer_t s_rx_byte_timeout;
+static volatile uint8_t s_rx_byte_timeout_flag = 0;
+
+static void on_rx_byte_timeout() {
+	s_rx_byte_timeout_flag = 1;
+}
+
 void CommHAL_Init(void){
 	DRV_UART1_Init(BAUD_RATE);
 	FrameQueue_Init(&s_rx_queue);
@@ -26,12 +35,18 @@ void CommHAL_Init(void){
 	s_rx_length = 0;
 }
 
+void CommHAL_SystickUpdate(void)
+{
+    SoftTimer_Update(&s_rx_byte_timeout);
+}
+
 void CommHAL_RxByteCallback(uint8_t byte) {
 	
 	switch(s_rx_state) {
 		
 		case WAIT_SOF_STATE:
 			if (byte == FRAME_SOF) {
+				SoftTimer_Start(&s_rx_byte_timeout, 2000, on_rx_byte_timeout);
 				s_rx_state = WAIT_TYPE_STATE;
 			}
 			break;
@@ -61,7 +76,8 @@ void CommHAL_RxByteCallback(uint8_t byte) {
 			s_rx_payload_idx = 0;
 		
 			if (s_rx_length == 0) {
-				uint8_t state = FrameQueue_Push(&s_rx_queue, &s_rx_frame);
+				SoftTimer_Stop(&s_rx_byte_timeout);
+				uint8_t state = RX_Queue_Push(&s_rx_frame);
 				if (!state) s_rx_state = WAIT_SOF_STATE;
 			} else if (s_rx_length > FRAME_MAX_PAYLOAD) {
 				s_rx_state = WAIT_SOF_STATE;
@@ -73,7 +89,8 @@ void CommHAL_RxByteCallback(uint8_t byte) {
 		case WAIT_PAYLOAD_STATE:
 			s_rx_frame.data.payload[s_rx_payload_idx++] = byte;
 			if (s_rx_payload_idx >= s_rx_length) {
-				uint8_t state = FrameQueue_Push(&s_rx_queue, &s_rx_frame);
+				SoftTimer_Stop(&s_rx_byte_timeout);
+				uint8_t state = RX_Queue_Push(&s_rx_frame);
 				s_rx_state = WAIT_SOF_STATE;
 			}
 			break;
